@@ -1,15 +1,13 @@
-from sqlalchemy import create_engine, text
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-DB_URL = "sqlite:///./database.db"
+from queries.core import create_tables
 
-engine = create_engine(DB_URL, echo=True)
 
-# в конце ROLLBACK
-with engine.connect() as conn:
-    result = conn.execute(text("SELECT 'Hello World'"))
-    print(f"Result: {result.scalar()}")
-
-# в конце COMMIT
-with engine.begin() as conn:
-    result = conn.execute(text("SELECT 'Hello World'"))
-    print(f"Result: {result.scalar()}")
+try:
+    print("Creating tables...")
+    create_tables()
+    print("Tables created successfully")
+except Exception as e:
+    print(f"Error creating tables: {e}")
