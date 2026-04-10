@@ -3,8 +3,11 @@ import sys
 import logging
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from queries.core import create_tables, insert_data, select_data
+# императивный подход
+# from queries.core import create_tables, insert_data, select_data
 
+# декларативный подход
+from queries.orm import create_tables, insert_data, select_data
 
 logger = logging.getLogger(__name__)
 
