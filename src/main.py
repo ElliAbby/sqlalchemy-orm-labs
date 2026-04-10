@@ -1,13 +1,32 @@
 import os
 import sys
+import logging
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from queries.core import create_tables
+from queries.core import create_tables, insert_data, select_data
+
+
+logger = logging.getLogger(__name__)
+
+try:
+    logger.info("Creating tables...")
+    create_tables()
+    logger.info("Tables created successfully")
+except Exception as e:
+    logger.info(f"Error creating tables: {e}")
 
 
 try:
-    print("Creating tables...")
-    create_tables()
-    print("Tables created successfully")
+    logger.info("Inserting data...")
+    insert_data()
+    logger.info("Data inserted successfully")
 except Exception as e:
-    print(f"Error creating tables: {e}")
+    logger.info(f"Error inserting data: {e}")
+
+
+try:
+    logger.info("Selecting data...")
+    select_data()
+    logger.info("Data selected successfully")
+except Exception as e:
+    logger.info(f"Error selecting data: {e}")
