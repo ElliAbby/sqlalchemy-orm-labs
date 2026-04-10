@@ -1,14 +1,14 @@
 from sqlalchemy import select
 
-from database import sync_engine, session_factory
-from models import metadata_obj, WorkersOrm
+from database import sync_engine, session_factory, Base
+from models import WorkersOrm
 
 
 def create_tables():
-    sync_engine.echo = False
-    metadata_obj.drop_all(sync_engine)
-    metadata_obj.create_all(sync_engine)
-    sync_engine.echo = True
+    # sync_engine.echo = False
+    Base.metadata.drop_all(sync_engine)
+    Base.metadata.create_all(sync_engine)
+    # sync_engine.echo = True
 
 
 def insert_data():

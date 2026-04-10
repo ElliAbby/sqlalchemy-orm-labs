@@ -1,7 +1,8 @@
-from sqlalchemy import Table, Column, Integer, String, MetaData
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
+from utils import Workload
 
 
 # Императивный стиль
@@ -17,7 +18,11 @@ workers_table = Table(
 
 # Декларативный стиль
 class WorkersOrm(Base):
-    __tablename__ = 'workers'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
+
+
+class ResumesOrm(Base):
+    title: Mapped[str]
+    salary: Mapped[int | None]
+    workload: Mapped[Workload]
+    worker_id: Mapped[int] = mapped_column(ForeignKey('workers.id', ondelete='CASCADE'))
