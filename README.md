@@ -2,7 +2,8 @@
 
 1. Создать `.env`
 ```text
-DB_URL=your_path_to_db
+DB_NAME=your_name_to_db
+DB_ECHO=False
 ```
 
 2. Загрузка зависимостей
@@ -15,4 +16,9 @@ poetry install
 Для императивного подхода в синхронном режиме
 ```bash
 poetry run python src/main.py --core --sync
+```
+
+Для декларативного подхода в синхронном режиме
+```bash
+poetry run python src/main.py --orm --sync
 ```
