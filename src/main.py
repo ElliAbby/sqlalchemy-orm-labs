@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 
@@ -10,43 +9,20 @@ from queries.core import SyncCore
 # декларативный подход
 # from queries.orm import create_tables, insert_data, select_data
 
-logger = logging.getLogger(__name__)
 
-try:
-    logger.info("Creating tables...")
-    SyncCore.create_tables()
-    logger.info("Tables created successfully")
-except Exception as e:
-    logger.warning(f"Error creating tables: {e}")
-
-
-try:
-    logger.info("Inserting data...")
-    SyncCore.insert_workers()
-    logger.info("Data inserted successfully")
-except Exception as e:
-    logger.warning(f"Error inserting data: {e}")
+def main():
+    if "--core" in sys.argv and "--sync" in sys.argv:
+        SyncCore.create_tables()
+        SyncCore.insert_workers()
+        SyncCore.select_workers()
+        SyncCore.insert_resumes()
+        SyncCore.select_resumes()
+        SyncCore.select_resumes_avg_salary(like_language="Python")
+        SyncCore.update_worker(worker_id=1, new_username="Superman")
+        SyncCore.update_resume(resume_id=1, new_salary=100_000)
+        SyncCore.delete_resume(resume_id=1)
+        SyncCore.delete_worker(worker_id=2)
 
 
-try:
-    logger.info("Selecting data...")
-    SyncCore.select_workers()
-    logger.info("Data selected successfully")
-except Exception as e:
-    logger.warning(f"Error selecting data: {e}")
-
-
-try:
-    logger.info("Update worker where id=1")
-    SyncCore.update_worker(worker_id=1, new_username="Superman")
-    logger.info("Data updated successfuly")
-except Exception as e:
-    logger.warning(f"Error updating data: {e}")
-
-
-try:
-    logger.info("Delete worker where id=1")
-    SyncCore.delete_worker(worker_id=1)
-    logger.info("Data deleted successfuly")
-except Exception as e:
-    logger.warning(f"Error deleting data: {e}")
+if __name__ == "__main__":
+    main()

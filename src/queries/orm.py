@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
-from database import sync_engine, session_factory, Base
-from models import WorkersOrm
+from database import Base, session_factory, sync_engine
+from models.orm import WorkersOrm
 
 
 def create_tables():
@@ -14,8 +14,8 @@ def create_tables():
 def insert_data():
     with session_factory() as session:
         try:
-            worker1 = WorkersOrm(username='John Doe')
-            worker2 = WorkersOrm(username='Ivan Ivanov')
+            worker1 = WorkersOrm(username="John Doe")
+            worker2 = WorkersOrm(username="Ivan Ivanov")
             session.add_all([worker1, worker2])
             session.commit()
         except Exception as e:

@@ -11,6 +11,8 @@ poetry install
 ```
 
 3. Запуск проекта
+
+Для императивного подхода в синхронном режиме
 ```bash
-poetry run python src/main.py
+poetry run python src/main.py --core --sync
 ```
