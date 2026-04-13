@@ -24,16 +24,21 @@ def main():
         SyncCore.delete_worker(worker_id=2)
 
     if "--orm" in sys.argv and "--sync" in sys.argv:
+        # создание и вставка
         SyncOrm.create_tables()
         SyncOrm.insert_workers()
         SyncOrm.select_workers()
         SyncOrm.insert_resumes()
         SyncOrm.select_resumes()
+        # сложные запросы
         SyncOrm.select_resumes_avg_salary(like_language="Python")
+        SyncOrm.get_resumes_salary_deviation()
+        # обноление
         SyncOrm.update_worker(worker_id=1, new_username="Superman")
         SyncOrm.select_workers()
         SyncOrm.update_resume(resume_id=1, new_salary=100_000)
         SyncOrm.select_resumes()
+        # удаление
         SyncOrm.delete_resume(resume_id=1)
         SyncOrm.select_resumes()
         SyncOrm.delete_worker(worker_id=2)

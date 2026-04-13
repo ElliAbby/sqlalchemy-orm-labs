@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import Integer, and_, func, select
+from sqlalchemy.orm import aliased
 from tabulate import tabulate
 
 from database import Base, session_factory, sync_engine
@@ -214,6 +215,71 @@ class SyncOrm:
                 tabulate(
                     table_data,
                     headers=["Тип занятости", "Средняя ЗП"],
-                    tablefmt="rounded_grid",  # или "psql", "fancy_grid"
+                    tablefmt="psql",  # стили: "psql", "fancy_grid", "rounded_grid"
+                )
+            )
+
+    @staticmethod
+    def get_resumes_salary_deviation():
+        """
+        Описание:
+        Этот SQL-запрос выполняет сложный аналитический расчет:
+        он сравнивает зарплату каждого конкретного работника со средней зарплатой по его типу занятости (workload).
+
+        SQL-скрипт:
+        WITH helper2 AS (
+            SELECT *, salary-avg_workload_salary AS salary_diff
+            FROM
+            (SELECT
+                w.id,
+                w.username,
+                r.salary,
+                r.workload,
+                avg(r.salary) OVER (PARTITION BY workload)::int AS avg_workload_salary
+            FROM resumes r
+            JOIN workers w ON r.worker_id = w.id) helper1
+        )
+        SELECT * FROM helper2
+        ORDER BY salary_diff DESC;
+        """
+        with session_factory() as session:
+            r = aliased(ResumesOrm)
+            w = aliased(WorkersOrm)
+            # оконная функция
+            avg_workload_col = (
+                func.avg(r.salary)
+                .over(partition_by=r.workload)
+                .cast(Integer)
+                .label("avg_workload_salary")
+            )
+
+            # подзапрос
+            subquery = (
+                select(w.id, w.username, r.salary, r.workload, avg_workload_col)
+                .select_from(r)
+                .join(w, w.id == r.worker_id)
+                .subquery()
+            )
+
+            # Финальный запрос с вычислением разницы
+            diff_salary = (subquery.c.salary - subquery.c.avg_workload_salary).label(
+                "salary_diff"
+            )
+
+            stmt = select(subquery, diff_salary).order_by(diff_salary.desc())
+            result = session.execute(stmt).all()
+            table_data = [
+                [r.username, r.workload.value, r.salary, r.salary_diff] for r in result
+            ]
+            print(
+                tabulate(
+                    table_data,
+                    headers=[
+                        "Имя п-ля",
+                        "Тип занятости",
+                        "Зарплата",
+                        "Разница между средней ЗП и своей",
+                    ],
+                    tablefmt="psql",  # стили: "psql", "fancy_grid", "rounded_grid"
                 )
             )
