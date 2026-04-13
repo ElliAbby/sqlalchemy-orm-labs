@@ -1,4 +1,6 @@
 from sqlalchemy import Integer, and_, delete, func, insert, select, text, update
+from sqlalchemy.orm import aliased
+from tabulate import tabulate
 
 from database import sync_engine
 from models.core import metadata_obj, resumes_table, workers_table
@@ -21,6 +23,9 @@ class SyncCore:
                 [
                     {"username": "John Doe"},
                     {"username": "Ivan Ivanov"},
+                    {"username": "Artem"},
+                    {"username": "Roman"},
+                    {"username": "Petr"},
                 ]
             )
             conn.execute(stmt)
@@ -84,6 +89,36 @@ class SyncCore:
                     "salary": 300000,
                     "workload": Workload.FULLTIME,
                     "worker_id": 2,
+                },
+                {
+                    "title": "Python программист",
+                    "salary": 60000,
+                    "workload": Workload.FULLTIME,
+                    "worker_id": 3,
+                },
+                {
+                    "title": "Machine Learning Engineer",
+                    "salary": 70000,
+                    "workload": Workload.PARTTIME,
+                    "worker_id": 3,
+                },
+                {
+                    "title": "Python Data Scientist",
+                    "salary": 80000,
+                    "workload": Workload.PARTTIME,
+                    "worker_id": 4,
+                },
+                {
+                    "title": "Python Analyst",
+                    "salary": 90000,
+                    "workload": Workload.FULLTIME,
+                    "worker_id": 4,
+                },
+                {
+                    "title": "Python Junior Developer",
+                    "salary": 100000,
+                    "workload": Workload.FULLTIME,
+                    "worker_id": 5,
                 },
             ]
             stmt = insert(resumes_table).values(resumes)
@@ -149,4 +184,76 @@ class SyncCore:
             )  # для красивого принта в консоле
             res = conn.execute(query)
             result = res.all()
-            print(result)
+            table_data = [[r.workload.value, r.avg_salary] for r in result]
+            print(
+                tabulate(
+                    tabular_data=table_data,
+                    headers=["Тип занятоности", "Средняя ЗП"],
+                    tablefmt="psql",
+                )
+            )
+
+    @staticmethod
+    def get_resumes_salary_deviation():
+        """
+        Описание:
+        Этот SQL-запрос выполняет сложный аналитический расчет:
+        он сравнивает зарплату каждого конкретного работника со средней зарплатой по его типу занятости (workload).
+
+        SQL-скрипт:
+        WITH helper2 AS (
+            SELECT *, salary-avg_workload_salary AS salary_diff
+            FROM
+            (SELECT
+                w.id,
+                w.username,
+                r.salary,
+                r.workload,
+                avg(r.salary) OVER (PARTITION BY workload)::int AS avg_workload_salary
+            FROM resumes r
+            JOIN workers w ON r.worker_id = w.id) helper1
+        )
+        SELECT * FROM helper2
+        ORDER BY salary_diff DESC;
+        """
+        with sync_engine.connect() as conn:
+            r = aliased(resumes_table)
+            w = aliased(workers_table)
+            # оконная функция
+            avg_workload_col = (
+                func.avg(r.c.salary)
+                .over(partition_by=r.c.workload)
+                .cast(Integer)
+                .label("avg_workload_salary")
+            )
+
+            # подзапрос
+            subquery = (
+                select(w.c.id, w.c.username, r.c.salary, r.c.workload, avg_workload_col)
+                .select_from(r)
+                .join(w, w.c.id == r.c.worker_id)
+                .subquery()
+            )
+
+            # Финальный запрос с вычислением разницы
+            diff_salary = (subquery.c.salary - subquery.c.avg_workload_salary).label(
+                "salary_diff"
+            )
+
+            stmt = select(subquery, diff_salary).order_by(diff_salary.desc())
+            result = conn.execute(stmt).all()
+            table_data = [
+                [r.username, r.workload.value, r.salary, r.salary_diff] for r in result
+            ]
+            print(
+                tabulate(
+                    table_data,
+                    headers=[
+                        "Имя п-ля",
+                        "Тип занятости",
+                        "Зарплата",
+                        "Разница между средней ЗП и своей",
+                    ],
+                    tablefmt="psql",  # стили: "psql", "fancy_grid", "rounded_grid"
+                )
+            )
