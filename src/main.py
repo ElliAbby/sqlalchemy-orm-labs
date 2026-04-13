@@ -29,6 +29,7 @@ def main():
         SyncOrm.select_workers()
         SyncOrm.insert_resumes()
         SyncOrm.select_resumes()
+        SyncOrm.select_resumes_avg_salary(like_language="Python")
         SyncOrm.update_worker(worker_id=1, new_username="Superman")
         SyncOrm.select_workers()
         SyncOrm.update_resume(resume_id=1, new_salary=100_000)

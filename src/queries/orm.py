@@ -1,6 +1,7 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import Integer, and_, func, select
+from tabulate import tabulate
 
 from database import Base, session_factory, sync_engine
 from models.orm import ResumesOrm, WorkersOrm
@@ -21,9 +22,14 @@ class SyncOrm:
     def insert_workers():
         with session_factory() as session:
             try:
-                worker1 = WorkersOrm(username="John Doe")
-                worker2 = WorkersOrm(username="Ivan Ivanov")
-                session.add_all([worker1, worker2])
+                workers = [
+                    WorkersOrm(username="John Doe"),
+                    WorkersOrm(username="Ivan Ivanov"),
+                    WorkersOrm(username="Artem"),
+                    WorkersOrm(username="Roman"),
+                    WorkersOrm(username="Petr"),
+                ]
+                session.add_all(workers)
                 session.flush()  # После flush каждый из работников получает первичный ключ id, который отдала БД
                 session.commit()
                 logger.info("Работники успешно добавлены")
@@ -100,6 +106,36 @@ class SyncOrm:
                     workload=Workload.FULLTIME,
                     worker_id=2,
                 ),
+                ResumesOrm(
+                    title="Python программист",
+                    salary=60000,
+                    workload=Workload.FULLTIME,
+                    worker_id=3,
+                ),
+                ResumesOrm(
+                    title="Machine Learning Engineer",
+                    salary=70000,
+                    workload=Workload.PARTTIME,
+                    worker_id=3,
+                ),
+                ResumesOrm(
+                    title="Python Data Scientist",
+                    salary=80000,
+                    workload=Workload.PARTTIME,
+                    worker_id=4,
+                ),
+                ResumesOrm(
+                    title="Python Analyst",
+                    salary=90000,
+                    workload=Workload.FULLTIME,
+                    worker_id=4,
+                ),
+                ResumesOrm(
+                    title="Python Junior Developer",
+                    salary=100000,
+                    workload=Workload.FULLTIME,
+                    worker_id=5,
+                ),
             ]
             session.add_all(resumes)
             session.commit()
@@ -145,3 +181,39 @@ class SyncOrm:
             else:
                 logger.warning(f"Резюме с ID = {resume_id} не найдено")
                 print(f"Резюме с ID = {resume_id} не найдено")
+
+    @staticmethod
+    def select_resumes_avg_salary(like_language: str):
+        """
+        select workload, avg(salary)::int as avg_salary
+        from resumes
+        where title like '%Python%' and salary > 40000
+        group by workload
+        having avg(salary) > 70000
+        """
+        with sync_engine.connect() as conn:
+            query = (
+                select(
+                    ResumesOrm.workload,
+                    func.avg(ResumesOrm.salary).cast(Integer).label("avg_salary"),
+                )
+                .select_from(ResumesOrm)
+                .filter(
+                    and_(
+                        ResumesOrm.title.contains(like_language),
+                        ResumesOrm.salary > 40000,
+                    )
+                )
+                .group_by(ResumesOrm.workload)
+                # .having(func.avg(ResumesOrm.salary) > 70000)
+            )
+            print(query.compile(compile_kwargs={"literal_binds": True}))
+            res = conn.execute(query).all()
+            table_data = [[r.workload.value, r.avg_salary] for r in res]
+            print(
+                tabulate(
+                    table_data,
+                    headers=["Тип занятости", "Средняя ЗП"],
+                    tablefmt="rounded_grid",  # или "psql", "fancy_grid"
+                )
+            )

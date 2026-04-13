@@ -144,7 +144,9 @@ class SyncCore:
                 .group_by(resumes_table.c.workload)
                 .having(func.avg(resumes_table.c.salary) > 70000)
             )
-            print(query.compile(compile_kwargs={"literal_binds": True}))
+            print(
+                query.compile(compile_kwargs={"literal_binds": True})
+            )  # для красивого принта в консоле
             res = conn.execute(query)
             result = res.all()
-            print(result[0].avg_salary)
+            print(result)
