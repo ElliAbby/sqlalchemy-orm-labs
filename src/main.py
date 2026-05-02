@@ -50,6 +50,10 @@ def main():
         SyncOrm.select_resumes()
         SyncOrm.delete_worker(worker_id=2)
         SyncOrm.select_workers()
+        # relationships
+        SyncOrm.select_workers_with_lazy_relationship()
+        SyncOrm.select_workers_with_joined_relationships()
+        SyncOrm.select_workers_with_selectin_relationships()
 
 
 if __name__ == "__main__":

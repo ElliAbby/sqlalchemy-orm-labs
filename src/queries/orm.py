@@ -1,7 +1,7 @@
 import logging
 
 from sqlalchemy import Integer, and_, func, select
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload, selectinload
 from tabulate import tabulate
 
 from database import Base, session_factory, sync_engine
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 class SyncOrm:
     @staticmethod
     def create_tables():
-        sync_engine.echo = False
+        sync_engine.echo = True
         Base.metadata.drop_all(sync_engine)
         Base.metadata.create_all(sync_engine)
-        # sync_engine.echo = True
+        sync_engine.echo = True
 
     @staticmethod
     def insert_workers():
@@ -283,3 +283,60 @@ class SyncOrm:
                     tablefmt="psql",  # стили: "psql", "fancy_grid", "rounded_grid"
                 )
             )
+
+    @staticmethod
+    def select_workers_with_lazy_relationship():
+        """данный запрос демонстрирует Lazy Loading (отложенную загрузку) связанных данных в SQLAlchemy."""
+        with session_factory() as session:
+            query = select(WorkersOrm)
+
+            res = session.execute(query).scalars().all()
+
+            # в данный момент SQLAlchemy «на лету» отправляет в базу данных новый отдельный SQL-запрос, чтобы найти резюме именно для этого работника.
+            worker_1_resumes = res[0].resumes
+            logger.info(f"LAZY relationships: {worker_1_resumes}")
+            print(f"LAZY relationships: {worker_1_resumes}")
+
+            worker_2_resumes = res[1].resumes
+            logger.info(f"LAZY relationships: {worker_2_resumes}")
+            print(f"LAZY relationships: {worker_2_resumes}")
+
+    @staticmethod
+    def select_workers_with_joined_relationships():
+        """Решает проблему N+1. Загружает и работников, и их резюме за один SQL-запрос"""
+        with session_factory() as session:
+            query = select(WorkersOrm).options(joinedload(WorkersOrm.resumes))
+
+            res = (
+                session.execute(query).unique().scalars().all()
+            )  # при joinedload важно использовать unique
+
+            worker_1_resumes = res[0].resumes
+            logger.info(f"JOINED relationships: {worker_1_resumes}")
+            print(f"JOINED relationships: {worker_1_resumes}")
+
+            worker_2_resumes = res[1].resumes
+            logger.info(f"JOINED relationships: {worker_2_resumes}")
+            print(f"JOINED relationships: {worker_2_resumes}")
+
+    @staticmethod
+    def select_workers_with_selectin_relationships():
+        """
+        Самый оптимальный вариант для загрузки коллекций (связей «один-ко-многим»)
+        Первый запрос: SQLAlchemy выбирает всех работников: SELECT * FROM workers.
+        Второй запрос: SQLAlchemy собирает все id полученных работников и делает один отдельный запрос для резюме: SELECT * FROM resumes WHERE worker_id IN (1, 2, 3, ...).
+        """
+        with session_factory() as session:
+            query = select(WorkersOrm).options(selectinload(WorkersOrm.resumes))
+
+            res = (
+                session.execute(query).scalars().all()
+            )  # при selectinload нед дубликатов -> не надо использовать unique
+
+            worker_1_resumes = res[0].resumes
+            logger.info(f"SELECTIN relationships: {worker_1_resumes}")
+            print(f"SELECTIN relationships: {worker_1_resumes}")
+
+            worker_2_resumes = res[1].resumes
+            logger.info(f"SELECTIN relationships: {worker_2_resumes}")
+            print(f"SELECTIN relationships: {worker_2_resumes}")
