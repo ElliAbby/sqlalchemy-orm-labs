@@ -13,6 +13,11 @@ class WorkersOrm(Base):
     resumes: Mapped[list["ResumesOrm"]] = relationship(
         back_populates="worker", cascade="all, delete-orphan"
     )
+    resumes_parttime: Mapped[list["ResumesOrm"]] = relationship(
+        back_populates="worker",
+        primaryjoin="and_(WorkersOrm.id == ResumesOrm.worker_id, ResumesOrm.workload == 'parttime')",
+        order_by="ResumesOrm.id.desc()",
+    )
 
     def __repr__(self):
         return f"<WorkersORM> ID: {self.id}, Username: {self.username}"

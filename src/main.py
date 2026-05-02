@@ -54,6 +54,9 @@ def main():
         SyncOrm.select_workers_with_lazy_relationship()
         SyncOrm.select_workers_with_joined_relationships()
         SyncOrm.select_workers_with_selectin_relationships()
+        SyncOrm.select_workers_with_condition_relationship()
+        SyncOrm.select_workers_with_contains_eager()
+        SyncOrm.select_workers_with_contains_eager_with_limit()
 
 
 if __name__ == "__main__":

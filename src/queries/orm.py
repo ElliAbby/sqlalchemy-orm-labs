@@ -1,7 +1,7 @@
 import logging
 
 from sqlalchemy import Integer, and_, func, select
-from sqlalchemy.orm import aliased, joinedload, selectinload
+from sqlalchemy.orm import aliased, contains_eager, joinedload, selectinload
 from tabulate import tabulate
 
 from database import Base, session_factory, sync_engine
@@ -340,3 +340,55 @@ class SyncOrm:
             worker_2_resumes = res[1].resumes
             logger.info(f"SELECTIN relationships: {worker_2_resumes}")
             print(f"SELECTIN relationships: {worker_2_resumes}")
+
+    @staticmethod
+    def select_workers_with_condition_relationship():
+        """Данный запрос демонстрирует загрузку по ортфильтрованым связям -> primaryjoin в модели"""
+        with session_factory() as session:
+            query = select(WorkersOrm).options(
+                selectinload(WorkersOrm.resumes_parttime)
+            )
+
+            res = session.execute(query).scalars().all()
+            logger.info(f"CONDITION REL {res}")
+            print(f"CONDITION REL {res}")
+
+    @staticmethod
+    def select_workers_with_contains_eager():
+        """contains eager позволяет более тонко настраивать подгрузку relationships"""
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm)
+                .join(WorkersOrm.resumes)
+                .options(contains_eager(WorkersOrm.resumes))
+                .filter(ResumesOrm.workload == "parttime")
+            )
+
+            res = session.execute(query).scalars().all()
+            logger.info(f"CONTAINS EAGER {res}")
+            print(f"CONTAINS EAGER {res}")
+
+    @staticmethod
+    def select_workers_with_contains_eager_with_limit():
+        # https://stackoverflow.com/a/72298903/22259413
+        with session_factory() as session:
+            subq = (
+                select(ResumesOrm.id.label("parttime_resume_id"))
+                .filter(ResumesOrm.worker_id == WorkersOrm.id)
+                .order_by(ResumesOrm.id.desc())
+                .limit(1)
+                .scalar_subquery()
+                .correlate(
+                    WorkersOrm
+                )  # использовать ID работника из внешнего (основного) запроса
+            )
+
+            query = (
+                select(WorkersOrm)
+                .join(ResumesOrm, ResumesOrm.id.in_(subq))
+                .options(contains_eager(WorkersOrm.resumes))
+            )
+
+            res = session.execute(query).unique().scalars().all()
+            logger.info(f"LIMIT CONT_EAGER {res}")
+            print(f"LIMIT CONT_EAGER {res}")
